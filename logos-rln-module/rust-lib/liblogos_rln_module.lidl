@@ -115,9 +115,12 @@ module liblogos_rln_module {
     ? min_rate_limit: int
     ? price_per_unit: any
   }
-  ; validate_proof's reply. recovered_secret is present only for the
+  ; validate_proof's reply. external_nullifier is present when a decomposed
+  ; proof omitted it and the reconstructed proof passed cryptographic
+  ; validation. recovered_secret is present only for the
   ; "rate_limit_violation" verdict.
   type VerificationResult {
+    ? external_nullifier: tstr
     ? recovered_secret: tstr
     verdict: tstr
   }
@@ -274,9 +277,11 @@ module liblogos_rln_module {
   ; (first valid proof for its nullifier), "invalid" (any failed check — not an
   ; error), "duplicate" (nullifier already seen under the same share_x — a
   ; retransmission), or "rate_limit_violation" (nullifier reused under a
-  ; different share_x — a double-signal). Only "rate_limit_violation" adds a
-  ; field: "recovered_secret" (hex), the offender's own identity secret
-  ; reconstructed from the two colliding shares. The verdict comes from an
+  ; different share_x — a double-signal). A decomposed proof that omitted
+  ; external_nullifier adds the reconstructed value after cryptographic
+  ; validation. Only "rate_limit_violation" adds "recovered_secret" (hex),
+  ; the offender's own identity secret reconstructed from the two colliding
+  ; shares. The verdict comes from an
   ; in-module nullifier log (per epoch, retained max_epoch_gap epochs,
   ; in-memory) — double-signal detection is the Module's job, not the
   ; consumer's. not_ready while the root window is cold/stale; invalid_argument

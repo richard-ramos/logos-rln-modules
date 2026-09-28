@@ -1487,13 +1487,12 @@ fn validate_proof_impl(
             views::VerdictReply::rate_limit_violation(recovered_secret)
         }
     };
-    let mut reply = ok_json(view)?;
-    if derive_external_nullifier {
-        reply["external_nullifier"] = serde_json::Value::String(
-            registry_id::bytes_to_hex(&bound),
-        );
-    }
-    Ok(reply)
+    let view = if derive_external_nullifier {
+        view.with_external_nullifier(registry_id::bytes_to_hex(&bound))
+    } else {
+        view
+    };
+    ok_json(view)
 }
 
 /// Spec get_epoch_quota(scope, timestamp): the epoch of the supplied
@@ -2313,13 +2312,16 @@ mod tests {
         let time = timestamp.to_string();
         let wrong = validate_proof_impl(&registry, &"aa".repeat(32), &signal_hex, &time, &wire).unwrap();
         assert_eq!(wrong["verdict"], "invalid");
+        assert!(wrong.get("external_nullifier").is_none());
         let wrong = validate_proof_impl(&registry, &scope, "00", &time, &wire).unwrap();
         assert_eq!(wrong["verdict"], "invalid");
+        assert!(wrong.get("external_nullifier").is_none());
         let valid = validate_proof_impl(&registry, &scope, &signal_hex, &time, &wire).unwrap();
         assert_eq!(valid["verdict"], "valid");
         assert_eq!(valid["external_nullifier"], registry_id::bytes_to_hex(&proof.external_nullifier()));
         let duplicate = validate_proof_impl(&registry, &scope, &signal_hex, &time, &wire).unwrap();
         assert_eq!(duplicate["verdict"], "duplicate");
+        assert_eq!(duplicate["external_nullifier"], registry_id::bytes_to_hex(&proof.external_nullifier()));
     }
 
     // An epoch-less proof (the decomposed spec shape may omit "epoch") is

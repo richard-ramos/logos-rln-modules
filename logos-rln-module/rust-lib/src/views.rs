@@ -252,9 +252,12 @@ impl RegistryParametersView {
 
 /// `validate_proof`'s reply — mirrors the `.lidl` `VerificationResult` record.
 /// `recovered_secret` is present only for the `"rate_limit_violation"`
-/// verdict.
+/// verdict. `external_nullifier` is present when the verifier reconstructed
+/// an omitted value for a cryptographically valid proof.
 #[derive(Serialize)]
 pub(crate) struct VerdictReply {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    external_nullifier: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     recovered_secret: Option<String>,
     verdict: String,
@@ -262,14 +265,24 @@ pub(crate) struct VerdictReply {
 
 impl VerdictReply {
     pub(crate) fn verdict(verdict: &str) -> Self {
-        VerdictReply { recovered_secret: None, verdict: verdict.to_string() }
+        VerdictReply {
+            external_nullifier: None,
+            recovered_secret: None,
+            verdict: verdict.to_string(),
+        }
     }
 
     pub(crate) fn rate_limit_violation(recovered_secret: String) -> Self {
         VerdictReply {
+            external_nullifier: None,
             recovered_secret: Some(recovered_secret),
             verdict: "rate_limit_violation".to_string(),
         }
+    }
+
+    pub(crate) fn with_external_nullifier(mut self, external_nullifier: String) -> Self {
+        self.external_nullifier = Some(external_nullifier);
+        self
     }
 }
 
